@@ -1,6 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-
-/* ===== Tipos ===== */
+import React, { useEffect, useRef, useState } from "react";
 type Tool = "pencil" | "eraser" | "line" | "rect" | "ellipse" | "polygon" | "arrow" | "crop" | "move";
 type FillMode = "stroke" | "fill" | "both";
 type StrokeKind = "solid" | "dashed";
@@ -12,7 +10,7 @@ type DrawBase = {
   kind: "path" | "line" | "rect" | "ellipse" | "polygon" | "arrow";
   stroke: string;
   fill: string;
-  fillMode: FillMode;          // para rect/ellipse/polygon
+  fillMode: FillMode;
   thickness: number;
   dashed: boolean;
   selected?: boolean;
@@ -41,7 +39,6 @@ const PALETTE = [
   "#f4cccc", "#fce5cd", "#fff2cc", "#d9ead3", "#d0e0e3", "#cfe2f3", "#d9d2e9", "#ead1dc"
 ];
 
-/* ===== Component ===== */
 export function CollageEditor({
   file,
   onSave,
@@ -56,52 +53,52 @@ export function CollageEditor({
   const captionRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // viewport (zoom/pan)
+
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const panningRef = useRef(false);
   const panLastRef = useRef({ x: 0, y: 0 });
 
-  // controladores iguais ao ImageEditor
+
   const [tool, setTool] = useState<Tool>("pencil");
   const [thickness, setThickness] = useState(6);
   const [fillMode, setFillMode] = useState<FillMode>("stroke");
   const [primary, setPrimary] = useState("#000000");
   const [secondary, setSecondary] = useState("#ffffff");
   const [activeColorSlot, setActiveColorSlot] = useState<"primary" | "secondary">("primary");
-  const [strokeKind, setStrokeKind] = useState<StrokeKind>("solid"); // sólida/pontilhada
+  const [strokeKind, setStrokeKind] = useState<StrokeKind>("solid");
 
-  // legenda
+
   const [caption, setCaption] = useState("");
 
-  // camadas de imagem
+
   const [layers, setLayers] = useState<ImgLayer[]>([]);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
 
-  // desenhos (vetoriais)
+
   const [draws, setDraws] = useState<DrawObj[]>([]);
   const [selectedDrawId, setSelectedDrawId] = useState<string | null>(null);
 
-  // preview shape
+
   const [polyTemp, setPolyTemp] = useState<Vec2[]>([]);
   const dragStartRef = useRef<Vec2 | null>(null);
   const lastMoveRef = useRef<Vec2 | null>(null);
 
-  // crop (caixa interna no layer selecionado)
+
   const cropBoxRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const cropDragRef = useRef<{ start: Vec2; box: { x: number; y: number; w: number; h: number }; handle: "nw" | "ne" | "se" | "sw" } | null>(null);
 
-  // mover entidade selecionada
+
   const movingRef = useRef<{ start: Vec2; orig: any } | null>(null);
 
-  // Undo/Redo (snapshots do estado serializado)
+
   const undoStack = useRef<string[]>([]);
   const redoStack = useRef<string[]>([]);
   const snapshot = () => JSON.stringify({ layers: serializeLayers(layers), draws, scale, offset });
   const pushUndo = () => { undoStack.current.push(snapshot()); if (undoStack.current.length > 60) undoStack.current.shift(); redoStack.current = []; };
   const restoreState = (snap: string) => {
     const parsed = JSON.parse(snap) as { layers: any[]; draws: DrawObj[]; scale: number; offset: { x: number; y: number } };
-    // reconstruir imagens
+
     const newLayers: ImgLayer[] = [];
     for (const L of parsed.layers) {
       const img = new Image();
@@ -117,7 +114,7 @@ export function CollageEditor({
   const undo = () => { if (undoStack.current.length === 0) return; const cur = snapshot(); const prev = undoStack.current.pop()!; redoStack.current.push(cur); restoreState(prev); };
   const redo = () => { if (redoStack.current.length === 0) return; const cur = snapshot(); const next = redoStack.current.pop()!; undoStack.current.push(cur); restoreState(next); };
 
-  /* ===== Inicializa imagem principal ===== */
+
   useEffect(() => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -138,15 +135,15 @@ export function CollageEditor({
       draw();
     };
     img.src = url;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [file]);
 
-  /* ===== Resize canvas ===== */
+
   useEffect(() => {
     const ro = new ResizeObserver(() => resizeCanvasAndRedraw());
     if (wrapRef.current) ro.observe(wrapRef.current);
     return () => ro.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   const canvasClientSize = () => {
@@ -169,12 +166,12 @@ export function CollageEditor({
     draw();
   };
 
-  /* ===== Render principal ===== */
+
   const draw = () => {
     const c = canvasRef.current!;
     const g = c.getContext("2d")!;
     const W = c.clientWidth, H = c.clientHeight;
-    // fundo xadrez
+
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, c.width, c.height);
     g.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
@@ -182,13 +179,13 @@ export function CollageEditor({
     g.fillStyle = "#e5e8f0";
     for (let y = 0; y < H; y += 16) for (let x = 0; x < W; x += 16) if (((x + y) / 16) % 2 === 0) g.fillRect(x, y, 16, 16);
 
-    // viewport
+
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
     g.translate(offset.x, offset.y);
     g.scale(scale, scale);
 
-    // camadas de imagem
+
     for (const L of layers) {
       const src = L.crop ?? { x: 0, y: 0, w: L.img.width, h: L.img.height };
       g.drawImage(L.img, src.x, src.y, src.w, src.h, L.x, L.y, L.w, L.h);
@@ -200,10 +197,8 @@ export function CollageEditor({
       }
     }
 
-    // desenhos
     for (const D of draws) renderObj(g, D);
 
-    // preview do polígono
     if (tool === "polygon" && polyTemp.length > 0) {
       g.save();
       g.setLineDash([6 / scale, 4 / scale]);
@@ -215,7 +210,6 @@ export function CollageEditor({
       g.restore();
     }
 
-    // crop overlay
     const L = selectedLayerId ? layers.find(l => l.id === selectedLayerId) : null;
     if (tool === "crop" && L) drawCropOverlay(g, L, cropBoxRef.current);
   };
@@ -237,10 +231,10 @@ export function CollageEditor({
         g.beginPath(); g.moveTo(D.a.x, D.a.y); g.lineTo(D.b.x, D.b.y); g.stroke();
         break;
       case "rect":
-        drawRect(g, D.a.x, D.a.y, D.b.x - D.a.x, D.b.y - D.a.y, D.fillMode, D);
+        drawRect(g, D.a.x, D.a.y, D.b.x - D.a.x, D.b.y - D.a.y, D.fillMode);
         break;
       case "ellipse":
-        drawEllipse(g, D.a.x, D.a.y, D.b.x - D.a.x, D.b.y - D.a.y, D.fillMode, D);
+        drawEllipse(g, D.a.x, D.a.y, D.b.x - D.a.x, D.b.y - D.a.y, D.fillMode);
         break;
       case "polygon":
         g.beginPath();
@@ -255,7 +249,7 @@ export function CollageEditor({
         break;
     }
 
-    // seleção do objeto
+
     if (D.selected) {
       const bb = bboxOf(D);
       if (bb) {
@@ -267,10 +261,10 @@ export function CollageEditor({
     g.restore();
   };
 
-  /* ===== Helpers desenho ===== */
+
   function drawRect(
     g: CanvasRenderingContext2D,
-    x: number, y: number, w: number, h: number, mode: FillMode, D?: DrawBase
+    x: number, y: number, w: number, h: number, mode: FillMode
   ) {
     const rx = w < 0 ? x + w : x, ry = h < 0 ? y + h : y, rw = Math.abs(w), rh = Math.abs(h);
     if (mode === "fill" || mode === "both") g.fillRect(rx, ry, rw, rh);
@@ -278,7 +272,7 @@ export function CollageEditor({
   }
   function drawEllipse(
     g: CanvasRenderingContext2D,
-    x: number, y: number, w: number, h: number, mode: FillMode, D?: DrawBase
+    x: number, y: number, w: number, h: number, mode: FillMode
   ) {
     g.beginPath();
     g.ellipse(x + w / 2, y + h / 2, Math.abs(w) / 2, Math.abs(h) / 2, 0, 0, Math.PI * 2);
@@ -293,7 +287,7 @@ export function CollageEditor({
     g.lineWidth = lw; g.strokeStyle = color;
     g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
 
-    // ponta
+
     const dx = b.x - a.x, dy = b.y - a.y, ang = Math.atan2(dy, dx);
     const len = Math.max(18, lw * 2.2);
     const a1 = ang + Math.PI - Math.PI / 7, a2 = ang + Math.PI + Math.PI / 7;
@@ -330,18 +324,18 @@ export function CollageEditor({
     }
   }
 
-  /* ===== Crop overlay e lógica ===== */
+
   const drawCropOverlay = (g: CanvasRenderingContext2D, L: ImgLayer, box: { x: number; y: number; w: number; h: number } | null) => {
     const b = box ?? { x: 0, y: 0, w: L.w, h: L.h };
     const cx = L.x + b.x, cy = L.y + b.y;
     g.save();
-    // escurece fora
+
     g.fillStyle = "rgba(0,0,0,0.35)";
     g.beginPath();
     g.rect(-1e5, -1e5, 2e5, 2e5);
     g.rect(cx, cy, b.w, b.h);
     g.fill("evenodd");
-    // traço + alças
+
     g.setLineDash([6 / scale, 4 / scale]); g.strokeStyle = "#5b8cff"; g.lineWidth = 1 / scale;
     g.strokeRect(cx, cy, b.w, b.h);
     g.setLineDash([]);
@@ -366,14 +360,14 @@ export function CollageEditor({
     pushUndo();
     const L = layers.find(l => l.id === selectedLayerId)!;
     const b = cropBoxRef.current;
-    // converter crop box (em coords do layer) para coords no bitmap original (considerando recortes anteriores)
+
     const base = L.crop ?? { x: 0, y: 0, w: L.img.width, h: L.img.height };
     const srcX = base.x + (b.x / L.w) * base.w;
     const srcY = base.y + (b.y / L.h) * base.h;
     const srcW = (b.w / L.w) * base.w;
     const srcH = (b.h / L.h) * base.h;
 
-    // gerar novo bitmap do recorte
+
     const off = document.createElement("canvas");
     off.width = Math.max(1, Math.round(b.w));
     off.height = Math.max(1, Math.round(b.h));
@@ -388,7 +382,7 @@ export function CollageEditor({
     nextImg.src = off.toDataURL("image/png");
   };
 
-  /* ===== Inputs / events ===== */
+
   const thicknessSwatches = [2, 4, 6, 10, 14, 18];
 
   const screenToWorld = (sx: number, sy: number) => {
@@ -396,9 +390,9 @@ export function CollageEditor({
     return { x: (sx - rect.left - offset.x) / scale, y: (sy - rect.top - offset.y) / scale };
   };
 
-  // seleção: prioriza objeto de desenho por cima de layer
+
   const hitTest = (p: Vec2): { type: "draw" | "layer"; id: string } | null => {
-    // desenhos por cima (ordem de criação -> mais novo por cima)
+
     for (let i = draws.length - 1; i >= 0; i--) {
       const D = draws[i];
       const bb = bboxOf(D);
@@ -407,7 +401,7 @@ export function CollageEditor({
         return { type: "draw", id: D.id };
       }
     }
-    // layers
+
     for (let i = layers.length - 1; i >= 0; i--) {
       const L = layers[i];
       if (p.x >= L.x && p.y >= L.y && p.x <= L.x + L.w && p.y <= L.y + L.h) {
@@ -422,7 +416,7 @@ export function CollageEditor({
 
     if (panningRef.current) { panLastRef.current = { x: e.clientX, y: e.clientY }; return; }
 
-    // CROP - prepara seleção e alça
+
     if (tool === "crop") {
       const hit = hitTest(p);
       const L = hit?.type === "layer" ? layers.find(x => x.id === hit.id)! :
@@ -444,7 +438,7 @@ export function CollageEditor({
       return;
     }
 
-    // ERASE: aplica direto (não movível) – mas mantém undo/redo
+
     if (tool === "eraser") {
       pushUndo();
       const id = crypto.randomUUID();
@@ -454,7 +448,7 @@ export function CollageEditor({
       return;
     }
 
-    // PENCIL e SHAPES: começa preview ou path
+
     if (tool === "pencil") {
       pushUndo();
       const id = crypto.randomUUID();
@@ -477,7 +471,7 @@ export function CollageEditor({
       return;
     }
 
-    // MOVE/seleção genérica
+
     const hit = hitTest(p);
     if (hit?.type === "draw") {
       selectOnlyDraw(hit.id);
@@ -493,7 +487,7 @@ export function CollageEditor({
   const onPointerMove: React.PointerEventHandler<HTMLCanvasElement> = (e) => {
     const p = screenToWorld(e.clientX, e.clientY);
 
-    // pan
+
     if (panningRef.current) {
       const dx = e.clientX - panLastRef.current.x;
       const dy = e.clientY - panLastRef.current.y;
@@ -501,7 +495,7 @@ export function CollageEditor({
       setOffset(o => ({ x: o.x + dx, y: o.y + dy })); draw(); return;
     }
 
-    // crop redimensiona caixa interna
+
     if (tool === "crop" && cropDragRef.current && selectedLayerId) {
       const L = layers.find(x => x.id === selectedLayerId)!;
       let { start, box, handle } = cropDragRef.current;
@@ -519,13 +513,11 @@ export function CollageEditor({
       draw(); return;
     }
 
-    // pencil/eraser path
     if ((tool === "pencil" || tool === "eraser") && dragStartRef.current) {
       setDraws(d => d.map(o => o.id === selectedDrawId ? ({ ...(o as PathObj), points: [...(o as PathObj).points, p] }) : o));
       lastMoveRef.current = p; draw(); return;
     }
 
-    // preview shapes
     if (dragStartRef.current && ["line", "rect", "ellipse", "arrow"].includes(tool)) {
       lastMoveRef.current = p; draw(); // apenas redesenha com a “moldura” azul? vamos adicionar um overlay rápido:
       const c = canvasRef.current!;
@@ -541,7 +533,6 @@ export function CollageEditor({
       return;
     }
 
-    // mover selecionado
     if (movingRef.current) {
       const d = { x: p.x - movingRef.current.start.x, y: p.y - movingRef.current.start.y };
       if (selectedDrawId) {
@@ -556,10 +547,9 @@ export function CollageEditor({
   };
 
   const onPointerUp: React.PointerEventHandler<HTMLCanvasElement> = () => {
-    // finalizar crop drag
+
     if (tool === "crop") { cropDragRef.current = null; return; }
 
-    // finalizar shapes → criar objeto
     if (dragStartRef.current && lastMoveRef.current && ["line", "rect", "ellipse", "arrow"].includes(tool)) {
       const s = dragStartRef.current, e = lastMoveRef.current;
       const id = crypto.randomUUID();
@@ -574,16 +564,14 @@ export function CollageEditor({
       dragStartRef.current = null; lastMoveRef.current = null; draw(); return;
     }
 
-    // finalizar pencil/eraser
     if (dragStartRef.current && (tool === "pencil" || tool === "eraser")) {
       dragStartRef.current = null; lastMoveRef.current = null; draw(); return;
     }
 
-    // finalizar mover
+
     if (movingRef.current) { movingRef.current = null; pushUndo(); return; }
   };
 
-  /* ===== teclado ===== */
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space") { panningRef.current = true; document.body.classList.add("cursor-grab"); }
@@ -608,10 +596,10 @@ export function CollageEditor({
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("keyup", onKeyUp); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [tool, polyTemp.length, primary, secondary, fillMode, thickness, strokeKind, selectedDrawId, selectedLayerId]);
 
-  /* ===== Zoom ===== */
+
   const onWheel: React.WheelEventHandler<HTMLCanvasElement> = (e) => {
     e.preventDefault();
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -626,7 +614,6 @@ export function CollageEditor({
     draw();
   };
 
-  /* ===== helpers seleção/movimento ===== */
   function moveObj(base: DrawObj, d: Vec2): DrawObj {
     switch (base.kind) {
       case "path": return { ...base, points: base.points.map(p => ({ x: p.x + d.x, y: p.y + d.y })) };
@@ -656,7 +643,6 @@ export function CollageEditor({
     draw();
   }
 
-  /* ===== adicionar imagens ===== */
   const addImages = (files: FileList | null) => {
     if (!files || files.length === 0) return;
     pushUndo();
@@ -677,19 +663,17 @@ export function CollageEditor({
     });
   };
 
-  /* ===== ações gerais ===== */
   const clearAll = () => { pushUndo(); setDraws([]); draw(); };
 
   const save = () => {
-    // render para uma imagem final (sem xadrez/zoom/pan)
-    const c = canvasRef.current!;
+
     const { W, H } = canvasClientSize();
     const out = document.createElement("canvas");
     out.width = W; out.height = H;
     const g = out.getContext("2d")!;
-    // fundo branco
+
     g.fillStyle = "#ffffff"; g.fillRect(0, 0, W, H);
-    // desenha layers e desenhos em (0,0) com offset/scale aplicados
+
     g.save();
     g.translate(offset.x, offset.y); g.scale(scale, scale);
     for (const L of layers) {
@@ -701,11 +685,9 @@ export function CollageEditor({
     onSave(out.toDataURL("image/png"), caption);
   };
 
-  /* ===== render JSX ===== */
   return (
     <div className="editor" ref={wrapRef}>
       <div className="editor-toolbar" ref={toolbarRef}>
-        {/* Ferramentas iguais ao seu ImageEditor + Move */}
         <div className="tool-group" title="Ferramentas">
           <button className={tool === "pencil" ? "active" : ""} onClick={() => setTool("pencil")} aria-label="Lápis">✏️</button>
           <button className={tool === "eraser" ? "active" : ""} onClick={() => setTool("eraser")} aria-label="Borracha">🧽</button>
@@ -718,7 +700,6 @@ export function CollageEditor({
           <button className={tool === "move" ? "active" : ""} onClick={() => setTool("move")} aria-label="Mover">🖐️</button>
         </div>
 
-        {/* Espessura (swatches + range) */}
         <div className="tool-group" title="Espessura">
           {thicknessSwatches.map(n => (
             <button key={n} className={`thick ${thickness === n ? "active" : ""}`} onClick={() => setThickness(n)}>
@@ -731,7 +712,6 @@ export function CollageEditor({
           </label>
         </div>
 
-        {/* Estilo (fillMode + linha pontilhada) */}
         <div className="tool-group" title="Estilo">
           <select value={fillMode} onChange={(e) => setFillMode(e.target.value as FillMode)}>
             <option value="stroke">Contorno</option>
@@ -743,10 +723,7 @@ export function CollageEditor({
             Pontilhada
           </label>
         </div>
-
         <div className="spacer" />
-
-        {/* Cores (Cor 1/Cor 2 + paleta + trocar) */}
         <div className="tool-group colors">
           <div className="color-pairs">
             <div className={`color-card ${activeColorSlot === "primary" ? "sel" : ""}`} onClick={() => setActiveColorSlot("primary")}>
@@ -770,25 +747,17 @@ export function CollageEditor({
             ))}
           </div>
         </div>
-
         <div className="spacer" />
-
-        {/* Undo/Redo/Limpar */}
         <button onClick={undo} title="Desfazer">↩️</button>
         <button onClick={redo} title="Refazer">↪️</button>
         <button onClick={clearAll} title="Limpar desenhos">🧹</button>
-
-        {/* Crop actions */}
         {tool === "crop" && selectedLayerId && (
           <div className="tool-group" title="Corte">
             <button className="primary" onClick={applyCrop}>Aplicar corte</button>
             <button onClick={() => { cropBoxRef.current = null; draw(); }}>Cancelar</button>
           </div>
         )}
-
         <div className="spacer" />
-
-        {/* Adicionar imagens */}
         <label className="add-btn">
           <input type="file" accept="image/*" multiple onChange={(e) => { addImages(e.target.files); e.currentTarget.value = ""; }} />
           ➕ Adicionar imagens
@@ -798,7 +767,6 @@ export function CollageEditor({
         <button className="primary" onClick={save}>💾 Salvar</button>
         <button onClick={onCancel}>✖️ Cancelar</button>
       </div>
-
       <div className="editor-canvas-wrap">
         <canvas
           ref={canvasRef}
@@ -809,7 +777,6 @@ export function CollageEditor({
           onWheel={onWheel}
         />
       </div>
-
       <div ref={captionRef} className="legend-row">
         <input
           value={caption}
@@ -821,11 +788,10 @@ export function CollageEditor({
   );
 }
 
-/* ===== Utils ===== */
 function clamp(v: number, a: number, b: number) { return Math.max(a, Math.min(b, v)); }
 function serializeLayers(layers: ImgLayer[]) {
   return layers.map(L => ({
     id: L.id, x: L.x, y: L.y, w: L.w, h: L.h, crop: L.crop,
-    src: L.img.src, // suficiente p/ restaurar
+    src: L.img.src,
   }));
 }

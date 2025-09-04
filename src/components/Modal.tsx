@@ -1,4 +1,4 @@
-import React, { type PropsWithChildren, useEffect } from "react";
+import { type PropsWithChildren, useEffect } from "react";
 
 export function Modal({
   children,
