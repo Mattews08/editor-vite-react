@@ -3,11 +3,11 @@
   --muted:#a8acb5; --border:#2a2d36; --accent:#5b8cff; --cta:#4caf50;
 }
 
-
+/* base */
 html,body,#root{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
 *{box-sizing:border-box}
 
-
+/* app shell */
 .page{display:flex;flex-direction:column;height:100%}
 .topbar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--border)}
 .topbar h1{font-size:18px;margin:0}
@@ -15,23 +15,23 @@ html,body,#root{height:100%;margin:0;background:var(--bg);color:var(--text);font
 .add-btn input{display:none}
 .add-btn:hover{border-color:var(--accent)}
 
-
+/* galeria */
 .gallery{padding:16px;flex:1;min-height:0}
 .empty{opacity:.8;color:var(--muted)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-.card{margin:0;background:var(--panel2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
-.card img{display:block;width:100%;height:180px;object-fit:cover}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.card{margin:0;background:var(--panel2);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer}
+.card img{display:block;width:100%;height:auto;object-fit:contain}
 .caption{padding:8px 10px;font-size:13px;color:var(--muted);border-top:1px solid var(--border)}
 
-
+/* modal */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
 .modal-content{background:var(--panel2);border:1px solid var(--border);border-radius:12px;width:min(1000px,95vw);height:min(760px,90vh);display:flex;flex-direction:column;overflow:hidden}
 .modal-full{width:100vw!important;height:100vh!important;border-radius:0!important}
 
-
+/* editor layout (toolbar + canvas flex + legenda fixa) */
 .editor{display:flex;flex-direction:column;height:100%}
 
-
+/* toolbar */
 .editor-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px;background:var(--panel);border-bottom:1px solid var(--border)}
 .editor-toolbar button,
 .editor-toolbar label,
@@ -44,14 +44,14 @@ html,body,#root{height:100%;margin:0;background:var(--bg);color:var(--text);font
 .sep{width:1px;height:28px;background:var(--border);margin:0 4px}
 .primary{background:var(--cta)!important;color:#fff!important;border:none!important}
 
-
+/* grupos reutilizáveis */
 .tool-group{display:flex;align-items:center;gap:6px;background:#20232c;border:1px solid var(--border);padding:6px;border-radius:8px}
 
-
+/* canvas area (ocupa o que sobrar entre toolbar e legenda) */
 .editor-canvas-wrap{flex:1;min-height:0;display:flex;position:relative}
 .editor-canvas{width:100%;height:100%;display:block;touch-action:none;border:1px solid var(--border)}
 
-
+/* cores (cards + paleta) - opcional p/ ImageEditor clássico */
 .color-pairs{display:flex;align-items:center;gap:8px}
 .color-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border:1px solid var(--border);border-radius:8px;background:#20232c}
 .color-card .swatch{width:28px;height:28px;border:1px solid #00000030;border-radius:4px}
@@ -62,10 +62,10 @@ html,body,#root{height:100%;margin:0;background:var(--bg);color:var(--text);font
 .palette .pal{width:22px;height:22px;padding:0;border:1px solid var(--border);border-radius:5px;background:#20232c;cursor:pointer}
 .palette .pal span{display:block;width:100%;height:100%;border-radius:3px}
 
-
+/* legenda no modal (campo fixo no rodapé) */
 .editor .legend-row{padding:10px;background:var(--panel);border-top:1px solid var(--border);display:flex;gap:8px}
 .editor .legend-row input{flex:1;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#20232c;color:var(--text)}
 
-
+/* utilidades de cursor (opcional) */
 .cursor-grab{cursor:grab}
 .cursor-grabbing{cursor:grabbing}
