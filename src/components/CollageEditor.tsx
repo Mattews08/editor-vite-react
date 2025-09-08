@@ -314,7 +314,7 @@ export function CollageEditor({
     nextImg.src = off.toDataURL("image/png");
   };
 
-  const thicknessSwatches = [2, 4, 6, 10, 14, 18];
+
 
   const screenToWorld = (sx: number, sy: number) => {
     const rect = canvasRef.current!.getBoundingClientRect();
