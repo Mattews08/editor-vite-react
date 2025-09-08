@@ -14,7 +14,7 @@ type DrawBase = {
   thickness: number;
   dashed: boolean;
   selected?: boolean;
-  [k: string]: any; // p/ borracha etc
+  [k: string]: any;
 };
 type PathObj = DrawBase & { kind: "path"; points: Vec2[] };
 type LineObj = DrawBase & { kind: "line"; a: Vec2; b: Vec2 };
@@ -45,9 +45,9 @@ export function CollageEditor({
   onSave,
   onCancel,
 }: {
-  file?: File;                // novo arquivo para editar
-  initialSrc?: string;        // reabrir só o PNG (sem projeto)
-  initialProject?: string;    // reabrir com projeto JSON (volta editável!)
+  file?: File;
+  initialSrc?: string;
+  initialProject?: string;
   onSave: (dataUrl: string, caption: string, projectJson: string) => void;
   onCancel: () => void;
 }) {
@@ -55,14 +55,10 @@ export function CollageEditor({
   const toolbarRef = useRef<HTMLDivElement>(null);
   const captionRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // viewport
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const panningRef = useRef(false);
   const panLastRef = useRef({ x: 0, y: 0 });
-
-  // estilo
   const [tool, setTool] = useState<Tool>("pencil");
   const [thickness, setThickness] = useState(6);
   const [fillMode, setFillMode] = useState<FillMode>("stroke");
@@ -70,41 +66,24 @@ export function CollageEditor({
   const [secondary, setSecondary] = useState("#ffffff");
   const [activeColorSlot, setActiveColorSlot] = useState<"primary" | "secondary">("primary");
   const [strokeKind, setStrokeKind] = useState<StrokeKind>("solid");
-
-  // caption
   const [caption, setCaption] = useState("");
-
-  // dados
   const [layers, setLayers] = useState<ImgLayer[]>([]);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
   const [draws, setDraws] = useState<DrawObj[]>([]);
   const [selectedDrawId, setSelectedDrawId] = useState<string | null>(null);
-
-  // temporários
   const [polyTemp, setPolyTemp] = useState<Vec2[]>([]);
   const dragStartRef = useRef<Vec2 | null>(null);
   const lastMoveRef = useRef<Vec2 | null>(null);
-
-  // crop
   const cropBoxRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const cropDragRef = useRef<{ start: Vec2; box: { x: number; y: number; w: number; h: number }; handle: "nw" | "ne" | "se" | "sw" } | null>(null);
-
-  // mover objeto inteiro
   const movingRef = useRef<{ start: Vec2; orig: any } | null>(null);
-
-  // preview de forma
   const [draft, setDraft] = useState<DrawObj | null>(null);
-
-  // arraste de handle de linha/seta
   const handleDragRef = useRef<{ drawId: string; handle: "a" | "b" } | null>(null);
-
-  // resize layer por handle
   const layerResizeRef = useRef<{
     layerId: string; handle: "nw" | "ne" | "se" | "sw"; start: Vec2;
     orig: { x: number; y: number; w: number; h: number }; keepRatio: boolean;
   } | null>(null);
 
-  // undo/redo
   const undoStack = useRef<string[]>([]);
   const redoStack = useRef<string[]>([]);
   const snapshot = () => JSON.stringify({ layers: serializeLayers(layers), draws, scale, offset });
@@ -125,7 +104,6 @@ export function CollageEditor({
   const undo = () => { if (!undoStack.current.length) return; const cur = snapshot(); const prev = undoStack.current.pop()!; redoStack.current.push(cur); restoreState(prev); };
   const redo = () => { if (!redoStack.current.length) return; const cur = snapshot(); const next = redoStack.current.pop()!; undoStack.current.push(cur); restoreState(next); };
 
-  // carregar (File / initialProject / initialSrc)
   useEffect(() => {
     const makeLayerFromImage = (img: HTMLImageElement) => {
       const { W, H } = canvasClientSize();
@@ -138,7 +116,7 @@ export function CollageEditor({
     };
 
     if (initialProject) {
-      // reabrir editável
+
       try {
         restoreState(initialProject);
         undoStack.current = []; redoStack.current = []; pushUndo();
@@ -162,7 +140,6 @@ export function CollageEditor({
     }
   }, [file, initialSrc, initialProject]);
 
-  // canvas init/resize
   useEffect(() => {
     resizeCanvasAndRedraw();
     const ro = new ResizeObserver(() => resizeCanvasAndRedraw());
@@ -172,7 +149,6 @@ export function CollageEditor({
     return () => { ro.disconnect(); window.removeEventListener("resize", onWinResize); };
   }, []);
 
-  // redesenhar sempre que mudar estado relevante
   useEffect(() => { draw(); }, [layers, draws, draft, scale, offset, selectedLayerId, selectedDrawId, tool, fillMode]);
 
   const canvasClientSize = () => {
@@ -187,15 +163,12 @@ export function CollageEditor({
   const draw = () => {
     const c = canvasRef.current!; const g = c.getContext("2d")!; const W = c.clientWidth, H = c.clientHeight;
 
-    // reset + bg
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height); g.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
     g.fillStyle = "#f4f6fb"; g.fillRect(0, 0, W, H);
 
-    // world
     g.setTransform(1, 0, 0, 1, 0, 0); g.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
     g.translate(offset.x, offset.y); g.scale(scale, scale);
 
-    // layers
     for (const L of layers) {
       const src = L.crop ?? { x: 0, y: 0, w: L.img.width, h: L.img.height };
       g.drawImage(L.img, src.x, src.y, src.w, src.h, L.x, L.y, L.w, L.h);
@@ -206,7 +179,6 @@ export function CollageEditor({
         g.strokeRect(L.x, L.y, L.w, L.h);
         g.restore();
 
-        // handles (se não estiver no crop)
         if (tool !== "crop") {
           const s = 8 / scale;
           const corners = [{ x: L.x, y: L.y }, { x: L.x + L.w, y: L.y }, { x: L.x + L.w, y: L.y + L.h }, { x: L.x, y: L.y + L.h }];
@@ -217,17 +189,14 @@ export function CollageEditor({
       }
     }
 
-    // draws
     for (const D of draws) renderObj(g, D);
 
-    // draft
     if (draft) {
       g.save(); g.setLineDash([6 / scale, 4 / scale]);
       const d = { ...draft, stroke: "#5b8cff", fill: "rgba(91,140,255,0.08)", thickness: Math.max(2, draft.thickness) } as DrawObj;
       renderObj(g, d); g.restore();
     }
 
-    // crop overlay
     const L = selectedLayerId ? layers.find(l => l.id === selectedLayerId) : null;
     if (tool === "crop" && L) drawCropOverlay(g, L, cropBoxRef.current);
   };
@@ -251,7 +220,6 @@ export function CollageEditor({
       case "arrow": { const A = D as ArrowObj; drawArrow(g, A.a, A.b, D.stroke, D.thickness, D.dashed); break; }
     }
 
-    // handles para line/arrow
     if (D.selected && (D.kind === "line" || D.kind === "arrow")) {
       const A = (D as any).a as Vec2, B = (D as any).b as Vec2; const s = 8 / scale;
       g.save(); g.setLineDash([]); g.fillStyle = "#5b8cff"; g.strokeStyle = "#fff"; g.lineWidth = 1 / scale;
@@ -381,7 +349,6 @@ export function CollageEditor({
 
     if (panningRef.current) { panLastRef.current = { x: e.clientX, y: e.clientY }; return; }
 
-    // CROP
     if (tool === "crop") {
       const hit = hitTest(p);
       const L = hit?.type === "layer" ? layers.find(x => x.id === hit.id)! : (selectedLayerId ? layers.find(x => x.id === selectedLayerId)! : null);
@@ -400,7 +367,6 @@ export function CollageEditor({
       return;
     }
 
-    // RESIZE LAYER handles (fora do crop)
     {
       const hit = hitTest(p);
       const L = hit?.type === "layer" ? layers.find(l => l.id === hit.id)! : (selectedLayerId ? layers.find(l => l.id === selectedLayerId)! : null);
@@ -414,7 +380,6 @@ export function CollageEditor({
       }
     }
 
-    // PEGAR HANDLE A/B (linha/seta)
     {
       const hit = hitTest(p);
       if (hit?.type === "draw") {
@@ -428,7 +393,6 @@ export function CollageEditor({
       }
     }
 
-    // DESENHO
     if (tool === "eraser") {
       pushUndo();
       const id = crypto.randomUUID();
@@ -448,7 +412,6 @@ export function CollageEditor({
       pushUndo(); setPolyTemp(t => t.length === 0 ? [p] : [...t, p]); setSelectedDrawId(null); setSelectedLayerId(null); return;
     }
 
-    // SELEÇÃO/MOVER
     const hit = hitTest(p);
     if (hit?.type === "draw") { selectOnlyDraw(hit.id); movingRef.current = { start: p, orig: draws.find(d => d.id === hit.id)! }; }
     else if (hit?.type === "layer") { selectOnlyLayer(hit.id); movingRef.current = { start: p, orig: layers.find(l => l.id === hit.id)! }; }
@@ -463,7 +426,6 @@ export function CollageEditor({
       panLastRef.current = { x: e.clientX, y: e.clientY }; setOffset(o => ({ x: o.x + dx, y: o.y + dy })); return;
     }
 
-    // crop
     if (tool === "crop" && cropDragRef.current && selectedLayerId) {
       const L = layers.find(x => x.id === selectedLayerId)!; const { start, box, handle } = cropDragRef.current;
       let dx = p.x - start.x, dy = p.y - start.y;
@@ -478,7 +440,6 @@ export function CollageEditor({
       cropBoxRef.current = { x: nx, y: ny, w: nw, h: nh }; return;
     }
 
-    // arraste de handle de linha/seta
     if (handleDragRef.current) {
       const { drawId, handle } = handleDragRef.current;
       setDraws(ds => ds.map(d => {
@@ -489,7 +450,6 @@ export function CollageEditor({
       return;
     }
 
-    // resize de layer
     if (layerResizeRef.current) {
       const { layerId, handle, start, orig, keepRatio } = layerResizeRef.current;
       const dx = p.x - start.x, dy = p.y - start.y;
@@ -516,7 +476,7 @@ export function CollageEditor({
       return;
     }
 
-    // desenho livre/preview
+
     if ((tool === "pencil" || tool === "eraser") && dragStartRef.current) {
       setDraws(d => d.map(o => o.id === selectedDrawId ? ({ ...(o as PathObj), points: [...(o as PathObj).points, p] } as DrawObj) : o));
       lastMoveRef.current = p; return;
@@ -532,7 +492,7 @@ export function CollageEditor({
       setDraft(obj); lastMoveRef.current = p; return;
     }
 
-    // mover objeto inteiro
+
     if (movingRef.current) {
       const d = { x: p.x - movingRef.current.start.x, y: p.y - movingRef.current.start.y };
       if (selectedDrawId) {
@@ -547,23 +507,23 @@ export function CollageEditor({
   };
 
   const finalizePointer = () => {
-    // handle setas/linhas (parar arrasto de pontas)
+
     if (handleDragRef.current) { handleDragRef.current = null; pushUndo(); return; }
-    // finalizar resize de layer
+
     if (layerResizeRef.current) { layerResizeRef.current = null; pushUndo(); return; }
-    // crop
+
     if (tool === "crop") { cropDragRef.current = null; return; }
-    // finalizar formas baseadas em draft (linha/ret/elp/seta)
+
     if (dragStartRef.current && lastMoveRef.current && ["line", "rect", "ellipse", "arrow"].includes(tool)) {
       const finalized = { ...draft, id: crypto.randomUUID() } as DrawObj;
       if (finalized) { setDraws(d => [...d, finalized]); setSelectedDrawId(finalized.id); setSelectedLayerId(null); }
       setDraft(null); dragStartRef.current = null; lastMoveRef.current = null; return;
     }
-    // lápis/borracha
+
     if (dragStartRef.current && (tool === "pencil" || tool === "eraser")) {
       dragStartRef.current = null; lastMoveRef.current = null; return;
     }
-    // mover tudo
+
     if (movingRef.current) { movingRef.current = null; pushUndo(); return; }
   };
 

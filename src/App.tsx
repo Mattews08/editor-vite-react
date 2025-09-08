@@ -7,11 +7,10 @@ type SavedImage = { src: string; caption?: string };
 export default function App() {
   const [isOpen, setIsOpen] = useState(false);
   const [fileToEdit, setFileToEdit] = useState<File | null>(null);
-  const [reeditSrc, setReeditSrc] = useState<string | null>(null);
+
   const [images, setImages] = useState<SavedImage[]>([]);
 
   const onPick = (f: File) => {
-    setReeditSrc(null);
     setFileToEdit(f);
     setIsOpen(true);
   };
@@ -20,13 +19,11 @@ export default function App() {
     setImages((prev) => [{ src, caption }, ...prev]);
     setIsOpen(false);
     setFileToEdit(null);
-    setReeditSrc(null);
   };
 
   const onCancel = () => {
     setIsOpen(false);
     setFileToEdit(null);
-    setReeditSrc(null);
   };
 
   return (
@@ -58,7 +55,6 @@ export default function App() {
                 className="card"
                 onClick={() => {
                   setFileToEdit(null);
-                  setReeditSrc(img.src);
                   setIsOpen(true);
                 }}
               >
@@ -72,11 +68,11 @@ export default function App() {
         )}
       </main>
 
-      {isOpen && (fileToEdit || reeditSrc) && (
+      {isOpen && fileToEdit && (
         <Modal onClose={onCancel} fullScreen>
           <CollageEditor
             file={fileToEdit ?? undefined}
-            initialSrc={reeditSrc ?? undefined}
+
             onSave={onSave}
             onCancel={onCancel}
           />
